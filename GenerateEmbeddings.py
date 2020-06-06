@@ -7,31 +7,24 @@ import numpy as np
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
 
-print('i. Before model is loaded')
 model = BertModel.from_pretrained('bert-base-cased')
 if torch.cuda.is_available():
     model= model.cuda()
 model.eval()
-print('ii. after model is loaded')
 
 import joblib
 
-print('iii. before docunarrow is loaded')
 with open('DocuNarrow.joblib', 'rb') as file_handle:
     clf_docu_narrow= joblib.load(file_handle)
-print('iv. after docunarrow is loaded and before docuwide')
 
 with open('DocuWide.joblib', 'rb') as file_handle:
     clf_docu_wide= joblib.load(file_handle)
-print('v. after docuwide is loaded and before paranarrow')
 
 with open('ParaNarrow.joblib', 'rb') as file_handle:
     clf_para_narrow= joblib.load(file_handle)
-print('vi. after paranarrow is loaded and before parawide')
 
 with open('ParaWide.joblib', 'rb') as file_handle:
     clf_para_wide= joblib.load(file_handle)
-print('vii. after parawide is loaded')
 
 def generate_sentence_embedding(sentence):
     marked_sentence= "[CLS] " + sentence + " [SEP]"
@@ -69,7 +62,7 @@ def generate_embeddings_narrow(corpora, path):
         if not document or not document_id:
             continue
         
-        print('a. Entered the document for loop')
+        # print('a. Entered the document for loop')
         document_embeddings= torch.zeros(768)
         if torch.cuda.is_available():
             document_embeddings= document_embeddings.cuda()
@@ -81,7 +74,7 @@ def generate_embeddings_narrow(corpora, path):
         previous_para_embeddings= None
         previous_para_length= None
         
-        print('b. Before the paragraph for loop')
+        # print('b. Before the paragraph for loop')
         for paragraph_index, paragraph in enumerate(paragraphs):
             sentences = split_into_sentences(paragraph)
 
@@ -106,7 +99,7 @@ def generate_embeddings_narrow(corpora, path):
             previous_para_embeddings = current_para_embeddings
             previous_para_length = current_para_length
         
-        print('c. After the paragaph for loop')
+        # print('c. After the paragaph for loop')
         
         paragraphs_embeddings= torch.stack(paragraphs_embeddings, dim=0)
         document_embeddings= document_embeddings/sentence_count
@@ -118,33 +111,34 @@ def generate_embeddings_narrow(corpora, path):
 
         #### PREDICTIONS 
 
-        print('d. before the document predicition classifier')
-        document_label= clf_docu_narrow.predict(document_embeddings)
-        print('e. after the document predicition classifier and before paragraph pred classifier')
-        paragraphs_labels= clf_para_narrow.predict(paragraphs_embeddings)
-        print('f. after the paragraph predicition classifier')
+        try:
+            document_label= clf_docu_narrow.predict(document_embeddings)
+        except:
+            document_label= [0]
+        
+        try:
+            paragraphs_labels= clf_para_narrow.predict(paragraphs_embeddings)
+        except:
+            paragraphs_labels= np.zeros(len(paragraphs)-1)
         paragraphs_labels= paragraphs_labels.astype(np.int32)
-
-        print('g. before making solution dictionary')
+        
         solution= {
             'multi-author': document_label[0],
             'changes': paragraphs_labels.tolist()
         }
-        print('h. after making solution dictionary')
 
 
         file_name= path+'/solution-problem-'+document_id+'.json'
-        print("i. Before saving the solution to: ", file_name)
+        # print("i. Before saving the solution to: ", file_name)
         with open(file_name, 'w') as file_handle:
             json.dump(solution, file_handle, default=myconverter)
-        print("j. after saving the solution to: ", file_name)
-        print()
+        # print("j. after saving the solution to: ", file_name)
+        # print()
         
 
             
 def generate_embeddings_wide(corpora, path):
     for document, document_id in corpora:
-        print('a. Entered the document for loop')
         if not document or not document_id:
             continue
         
@@ -159,7 +153,6 @@ def generate_embeddings_wide(corpora, path):
         previous_para_embeddings= None
         previous_para_length= None
 
-        print('b. Before the paragraph for loop')
         for paragraph_index, paragraph in enumerate(paragraphs):
             sentences = split_into_sentences(paragraph)
 
@@ -184,7 +177,7 @@ def generate_embeddings_wide(corpora, path):
             previous_para_embeddings = current_para_embeddings
             previous_para_length = current_para_length
         
-        print('c. After the paragaph for loop')
+        # print('c. After the paragaph for loop')
         
         paragraphs_embeddings= torch.stack(paragraphs_embeddings, dim=0)
         document_embeddings= document_embeddings/sentence_count
@@ -196,28 +189,26 @@ def generate_embeddings_wide(corpora, path):
 
         #### PREDICTIONS 
 
-        print('d. before the document predicition classifier')
-        document_label= clf_docu_wide.predict(document_embeddings)
-        print('e. after the document predicition classifier and before paragraph pred classifier')
-        paragraphs_labels= clf_para_wide.predict(paragraphs_embeddings)
-        print('f. after the paragraph predicition classifier')
+        try:
+            document_label= clf_docu_wide.predict(document_embeddings)
+        except: 
+            document_label= [0]
+
+        try:
+            paragraphs_labels= clf_para_wide.predict(paragraphs_embeddings)
+        except:
+            paragraphs_labels= np.zeros(len(paragraphs)-1)
         paragraphs_labels= paragraphs_labels.astype(np.int32)
 
-        print('g. before making solution dictionary')
         solution= {
             'multi-author': document_label[0],
             'changes': paragraphs_labels.tolist()
         }
-        print('h. after making solution dictionary')
 
         file_name= path+'/solution-problem-'+document_id+'.json'
-        print("i. Before saving the solution to: ", file_name)
         with open(file_name, 'w') as file_handle:
             json.dump(solution, file_handle, default=myconverter)
 
-        print("j. after saving the solution to: ", file_name)
-        print()
-        
 
 def myconverter(obj):
     if isinstance(obj, np.integer):
