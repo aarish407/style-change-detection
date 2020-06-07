@@ -1,8 +1,8 @@
 import sys
 import pickle
 import os
+import glob
 
-from LoadDataset import load_dataset
 from GenerateEmbeddings import generate_embeddings_narrow, generate_embeddings_wide
 
 # TODO: Change this later
@@ -20,12 +20,14 @@ output_path_narrow= output_dir + '/dataset-narrow'
 output_path_wide= output_dir + '/dataset-wide'
 
 os.mkdir(output_path_narrow)
-# os.mkdir(output_path_wide)
+os.mkdir(output_path_wide)
 
-dataset_narrow= load_dataset(input_path_narrow)
-generate_embeddings_narrow(dataset_narrow[10:15], output_path_narrow)
+dataset_narrow= glob.glob(input_path_narrow+'/*.txt')
+print(input_path_narrow)
+generate_embeddings_narrow(dataset_narrow[51:151], input_path_narrow, output_path_narrow)
 del dataset_narrow
 
-# dataset_wide= load_dataset(input_path_wide)
-# generate_embeddings_wide(dataset_wide[:2], output_path_wide)
-# del dataset_wide
+dataset_wide= glob.glob(input_path_wide+'/*.txt')
+print()
+generate_embeddings_wide(dataset_wide[51:151], input_path_wide, output_path_wide)
+del dataset_wide
